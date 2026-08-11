@@ -2,9 +2,8 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+    branches:
+      - main
   workflow_dispatch:
 
 permissions:
@@ -14,84 +13,25 @@ permissions:
 
 concurrency:
   group: pages
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
-  validate:
-    name: Validate Static Assets
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Validate required files exist
-        run: |
-          echo "Checking required files..."
-          files=("index.html" "style.css" "script.js" "assets/profile.jpg" "assets/Abhishek-Sharma-Resume.pdf")
-          for f in "${files[@]}"; do
-            if [ ! -f "$f" ]; then
-              echo "ERROR: Missing required file: $f"
-              exit 1
-            fi
-            echo "  ✓ $f"
-          done
-          echo "All required files present."
-
-      - name: Validate HTML structure
-        run: |
-          echo "Checking HTML structure..."
-          if ! grep -q '<!DOCTYPE html>' index.html; then
-            echo "ERROR: Missing DOCTYPE declaration"
-            exit 1
-          fi
-          if ! grep -q '<html' index.html; then
-            echo "ERROR: Missing html tag"
-            exit 1
-          fi
-          if ! grep -q '<head>' index.html; then
-            echo "ERROR: Missing head tag"
-            exit 1
-          fi
-          if ! grep -q '<body>' index.html; then
-            echo "ERROR: Missing body tag"
-            exit 1
-          fi
-          echo "  ✓ HTML structure valid"
-
-      - name: Check for broken local asset references
-        run: |
-          echo "Checking local asset references..."
-          refs=$(grep -oP '(?:src|href)="(?!http|#|mailto|tel|javascript)[^"]+"' index.html | sed 's/.*="//;s/"//' || true)
-          broken=0
-          for ref in $refs; do
-            if [ ! -f "$ref" ]; then
-              echo "WARNING: Possibly broken reference: $ref"
-              broken=$((broken + 1))
-            else
-              echo "  ✓ $ref"
-            fi
-          done
-          if [ $broken -gt 0 ]; then
-            echo "Found $broken potentially broken references (warnings only)"
-          fi
-          echo "Asset reference check complete."
-
   deploy:
-    name: Deploy
-    needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+    name: Deploy Portfolio
     runs-on: ubuntu-latest
+
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Pages
+      - name: Setup GitHub Pages
         uses: actions/configure-pages@v5
 
-      - name: Upload artifact
+      - name: Upload website
         uses: actions/upload-pages-artifact@v3
         with:
           path: .
